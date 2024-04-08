@@ -1578,8 +1578,12 @@ dagre.layout = (graph, layout) => {
                         }
                     }
                 }
+                const findNode = (name) => {
+                    let value = graph._values.get(name);
+                    return value.from;
+                }
                 // Second pass, removes unused space by moving blocks to the greatest coordinates without violating separation.
-                if (blockG.nodes.size > 0) {
+                if (false && blockG.nodes.size > 0) {
                     const stack = Array.from(blockG.nodes.keys());
                     const visited = new Set();
                     while (stack.length > 0) {
@@ -1602,9 +1606,79 @@ dagre.layout = (graph, layout) => {
                         }
                     }
                 }
+                if (1) {
+                    const familyMap = new Map();
+                    const edgeKeys = graph.edges.keys().toArray();
+                    for (const [k,v] of graph.nodes) {
+                        let parents = new Set();
+                        let children = new Set();
+                        for (const key of edgeKeys) {
+                            if (key.startsWith(k + ":")) {
+                                children.add(key.substring(k.length + 1, key.length));
+                            }else if (key.endsWith(":" + k)) {
+                                parents.add(key.substring(0, key.length - k.length - 1));
+                            }
+                        }
+                        familyMap.set(k, {parents:parents, children:children});
+                    }
+                    const clusterMap = new Map();
+                    for (const [k,v] of g.nodes) {
+                        const r = root[k];
+                        if (clusterMap.has(r)) {
+                            clusterMap.get(r).nodes.add(k);
+                        }else {
+                            let cluster = { nodes: new Set(), relatives: new Set(), };
+                            cluster.nodes.add(k);
+                            clusterMap.set(r, cluster);
+                        }
+                    }
+                    for (const [k,v] of g.nodes) {
+                        let cluster = clusterMap.get(root[k]);
+                        let family = familyMap.get(k);
+                        if (family) {
+                            for (const rel of family.parents.union(family.children).difference(cluster.nodes)) {
+                                cluster.relatives.add(clusterMap.get(root[rel]));
+                            }
+                        }
+                    }
+                    for (const [r, cluster] of clusterMap) {
+                        let top = Number.MAX_VALUE;
+                        let bottom = 0;
+                        let left = Number.MAX_VALUE;
+                        let right = 0;
+                        let maxWidth = 0;
+                        for (const v of cluster.nodes) {
+                            const node = g.nodes.get(v);
+                            const y = node.label.y;
+                            const width = node.label.width;
+                            const height = node.label.height;
+                            top = Math.min(top, y - height/2);
+                            bottom = Math.max(bottom, y + height/2);
+                            maxWidth = Math.max(maxWidth, node.label.width)
+                        }
+                        cluster.top = top;
+                        cluster.bottom = bottom;
+                        cluster.x = xs[r];
+                        cluster.width = maxWidth;
+                    }
+                    graph.tmp = clusterMap;
+                    let b = 0;
+                }
                 // Assign x coordinates to all nodes
                 for (const v of Object.values(align)) {
                     xs[v] = xs[root[v]];
+                }
+                if (0) {
+                    let tmp = new Map();
+                    for (const [k,v] of g.nodes) {
+                        tmp.set(k, {
+                            top: v.label.y - v.label.height/2,
+                            bottom: v.label.y + v.label.height/2,
+                            x: xs[k],
+                            width: v.label.width,
+                        });
+                    }
+                    graph.tmp = tmp;
                 }
                 return xs;
             };
@@ -1714,6 +1788,7 @@ dagre.layout = (graph, layout) => {
             // Coordinate assignment based on Brandes and Köpf, 'Fast and Simple Horizontal Coordinate Assignment.'
             const conflicts = Object.assign(findType1Conflicts(g, layering), findType2Conflicts(g, layering));
             const xss = {};
+            graph.tmps = {};
             for (const vertical of ['u', 'd']) {
                 let adjustedLayering = vertical === 'u' ? layering : Object.values(layering).reverse();
                 for (const horizontal of ['l', 'r']) {
@@ -1729,6 +1804,7 @@ dagre.layout = (graph, layout) => {
                         }
                     }
                     xss[vertical + horizontal] = xs;
+                    graph.tmps[vertical + horizontal] = graph.tmp;
                 }
             }
             // Find smallest width alignment: Returns the alignment that has the smallest width of the given alignments.
@@ -1787,8 +1863,10 @@ dagre.layout = (graph, layout) => {
                 }
             }
             // balance
-            const align = g.layout.align;
+            // const align = g.layout.align;
+            const align = 'ul';
             if (align) {
+                graph.tmp = graph.tmps[align];
                 const xs = xss[align.toLowerCase()];
                 for (const v of Object.keys(xss.ul)) {
                     g.node(v).label.x = xs[v];
