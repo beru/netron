@@ -832,20 +832,20 @@ view.View = class {
         viewGraph.measure();
         viewGraph.layout();
         viewGraph.update();
-        const addRect = (id, fill, x, y, width, height, opacity) => {
-            let rect = this._host.document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            rect.setAttribute('id', id);
-            rect.setAttribute('fill', fill);
-            rect.setAttribute('pointer-events', 'none');
-            rect.setAttribute('x', x);
-            rect.setAttribute('y', y);
-            rect.setAttribute('width', width);
-            rect.setAttribute('height', height);
-            rect.setAttribute('opacity', opacity);
-            canvas.appendChild(rect);
-            return rect;
-        }
-        {
+        if (0) {
+            const addRect = (id, fill, x, y, width, height, opacity) => {
+                let rect = this._host.document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('id', id);
+                rect.setAttribute('fill', fill);
+                rect.setAttribute('pointer-events', 'none');
+                rect.setAttribute('x', x);
+                rect.setAttribute('y', y);
+                rect.setAttribute('width', width);
+                rect.setAttribute('height', height);
+                rect.setAttribute('opacity', opacity);
+                canvas.appendChild(rect);
+                return rect;
+            }
             for (const [k,v] of viewGraph.tmp) {
                 addRect(k, 'red', v.x - v.width/2 + 153, v.top + 100, v.width, v.bottom - v.top, 0.5);
             }

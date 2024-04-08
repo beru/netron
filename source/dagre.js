@@ -1583,7 +1583,7 @@ dagre.layout = (graph, layout) => {
                     return value.from;
                 }
                 // Second pass, removes unused space by moving blocks to the greatest coordinates without violating separation.
-                if (false && blockG.nodes.size > 0) {
+                if (0 && blockG.nodes.size > 0) {
                     const stack = Array.from(blockG.nodes.keys());
                     const visited = new Set();
                     while (stack.length > 0) {
@@ -1608,6 +1608,7 @@ dagre.layout = (graph, layout) => {
                 }
                 if (1) {
                     const familyMap = new Map();
+                    // Create a family map that records parents and children of each node
                     const edgeKeys = graph.edges.keys().toArray();
                     for (const [k,v] of graph.nodes) {
                         let parents = new Set();
@@ -1621,6 +1622,7 @@ dagre.layout = (graph, layout) => {
                         }
                         familyMap.set(k, {parents:parents, children:children});
                     }
+                    // Node clustering
                     const clusterMap = new Map();
                     for (const [k,v] of g.nodes) {
                         const r = root[k];
@@ -1656,13 +1658,65 @@ dagre.layout = (graph, layout) => {
                             bottom = Math.max(bottom, y + height/2);
                             maxWidth = Math.max(maxWidth, node.label.width)
                         }
+                        cluster.r = r;
                         cluster.top = top;
                         cluster.bottom = bottom;
                         cluster.x = xs[r];
                         cluster.width = maxWidth;
                     }
-                    graph.tmp = clusterMap;
-                    let b = 0;
+                    const nodeSep = g.layout.nodesep;
+                    // Descend sort
+                    const clusters = [...clusterMap.values()].sort((a, b) => b.x - a.x);
+                    for (let i=0; i<clusters.length; ++i) {
+                        const cluster = clusters[i];
+                        let nearest = null;
+                        let minDistance = Number.MAX_VALUE;
+                        if (cluster.width == 0) {
+                            continue;
+                        }
+                        const left = cluster.x - cluster.width/2;
+                        const right = cluster.x + cluster.width/2;
+                        const top = cluster.top;
+                        const bottom = cluster.bottom;
+                        // Find nearest relative
+                        for (const relative of cluster.relatives) {
+                            const relativeLeft = relative.x - relative.width/2;
+                            const dist = relativeLeft - right;
+                            if (dist < minDistance) {
+                                minDistance = dist;
+                                nearest = relative;
+                            }
+                        }
+                        if (!nearest || minDistance < cluster.width) {
+                            continue;
+                        }
+                        // Try to remove unused space
+                        let poops = [];
+                        for (let j=i-1; j>0; --j) {
+                            const other = clusters[j];
+                            if (other.width == 0) {
+                                if (cluster.nodes.has(g.nodes.get(other.r).out[0].w)) {
+                                    poops.push(other);
+                                }
+                                continue;
+                            }
+                            if (top < other.bottom && bottom > other.top) {
+                                const otherLeft = other.x - other.width/2;
+                                const dist = otherLeft - right;
+                                let newX = otherLeft - cluster.width/2 - nodeSep;
+                                if (cluster.x < newX) {
+                                    let diffX = newX - cluster.x;
+                                    cluster.x = newX;
+                                    xs[cluster.r] = newX;
+                                    for (const p of poops) {
+                                        p.x += diffX;
+                                        xs[p.r] += diffX;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
                 }
                 // Assign x coordinates to all nodes
                 for (const v of Object.values(align)) {
@@ -1678,7 +1732,6 @@ dagre.layout = (graph, layout) => {
                             width: v.label.width,
                         });
                     }
-                    graph.tmp = tmp;
                 }
                 return xs;
             };
@@ -1788,7 +1841,6 @@ dagre.layout = (graph, layout) => {
             // Coordinate assignment based on Brandes and Köpf, 'Fast and Simple Horizontal Coordinate Assignment.'
             const conflicts = Object.assign(findType1Conflicts(g, layering), findType2Conflicts(g, layering));
             const xss = {};
-            graph.tmps = {};
             for (const vertical of ['u', 'd']) {
                 let adjustedLayering = vertical === 'u' ? layering : Object.values(layering).reverse();
                 for (const horizontal of ['l', 'r']) {
@@ -1804,7 +1856,6 @@ dagre.layout = (graph, layout) => {
                         }
                     }
                     xss[vertical + horizontal] = xs;
-                    graph.tmps[vertical + horizontal] = graph.tmp;
                 }
             }
             // Find smallest width alignment: Returns the alignment that has the smallest width of the given alignments.
@@ -1863,10 +1914,8 @@ dagre.layout = (graph, layout) => {
                 }
             }
             // balance
-            // const align = g.layout.align;
-            const align = 'ul';
+            const align = g.layout.align;
             if (align) {
-                graph.tmp = graph.tmps[align];
                 const xs = xss[align.toLowerCase()];
                 for (const v of Object.keys(xss.ul)) {
                     g.node(v).label.x = xs[v];
