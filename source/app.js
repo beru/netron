@@ -222,7 +222,7 @@ app.Application = class {
         }
     }
 
-    _export() {
+    async _export() {
         const view = this._views.activeView;
         if (view && view.path) {
             let defaultPath = 'Untitled';
@@ -241,9 +241,9 @@ app.Application = class {
                     { name: 'SVG', extensions: ['svg'] }
                 ]
             };
-            const selectedFile = electron.dialog.showSaveDialogSync(owner, options);
-            if (selectedFile) {
-                view.execute('export', { 'file': selectedFile });
+            const { filePath, canceled } = await electron.dialog.showSaveDialog(owner, options);
+            if (filePath && !canceled) {
+                view.execute('export', { 'file': filePath });
             }
         }
     }
