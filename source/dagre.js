@@ -1891,9 +1891,12 @@ dagre.layout = (nodes, edges, layout, state) => {
                 const xs = xss[alignment];
                 if (xs !== alignTo) {
                     const vsValsRange = range(xs.values());
-                    const delta = horizontal === 'l' ? alignToRange[0] - vsValsRange[0] : alignToRange[1] - vsValsRange[1];
+                    let delta = horizontal === 'l' ? alignToRange[0] - vsValsRange[0] : alignToRange[1] - vsValsRange[1];
                     if (delta) {
                         const list = new Map();
+                        if (alignment === 'dl') {
+                            delta = -delta;
+                        }
                         for (const [key, value] of xs.entries()) {
                             list.set(key, value + delta);
                         }
