@@ -1648,7 +1648,7 @@ dagre.layout = (nodes, edges, layout, state) => {
                     if (ws.size > 0) {
                         ws = Array.from(ws.keys());
                         ws = ws.sort((a, b) => pos[a] - pos[b]);
-                        const mp = (ws.length - 1) / 2.0;
+                        const mp = (ws.length - 1) / 2.0000001;
                         const il = Math.ceil(mp);
                         for (let i = Math.floor(mp); i <= il; i++) {
                             const w = ws[i];
