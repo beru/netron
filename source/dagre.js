@@ -1650,7 +1650,7 @@ dagre.layout = (nodes, edges, layout, state) => {
                         ws = ws.sort((a, b) => pos[a] - pos[b]);
                         const mp = (ws.length - 1) / 2.0;
                         const il = Math.ceil(mp);
-                        for (let i = Math.floor(mp); i <= il; i++) {
+                        for (let i = Math.max(0, il - 1); i <= il; i++) {
                             const w = ws[i];
                             if (align[v] === v && prevIdx < pos[w] && !hasConflict(conflicts, v, w)) {
                                 const x = root[w];
