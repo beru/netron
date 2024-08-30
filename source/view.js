@@ -773,6 +773,11 @@ view.View = class {
         if (graph && graph !== this.activeGraph && Array.isArray(graph.nodes)) {
             this._sidebar.close();
             const signature = Array.isArray(graph.signatures) && graph.signatures.length > 0 ? graph.signatures[0] : null;
+            const container = this._element('graph');
+            const front = this._stack[0];
+            front.scrollLeft = container.scrollLeft;
+            front.scrollTop = container.scrollTop;
+            front.zoom = this._zoom;
             const entry = { graph, signature };
             const stack = [entry].concat(this._stack);
             await this._updateGraph(this._model, stack);
@@ -843,7 +848,7 @@ view.View = class {
             canvas.setAttribute('width', width);
             canvas.setAttribute('height', height);
             this._zoom = 1;
-            this._updateZoom(this._zoom);
+            this._updateZoom(this._stack[0].zoom || this._zoom);
             const container = this._element('graph');
             if (elements && elements.length > 0) {
                 // Center view based on input elements
@@ -861,9 +866,14 @@ view.View = class {
                     x = xs.reduce((a, b) => a + b, 0) / xs.length;
                 }
                 const graphRect = container.getBoundingClientRect();
-                const left = (container.scrollLeft + x - graphRect.left) - (graphRect.width / 2);
-                const top = (container.scrollTop + y - graphRect.top) - (graphRect.height / 2);
-                container.scrollTo({ left, top, behavior: 'auto' });
+                if (this._stack[0].hasOwnProperty('scrollLeft')) {
+                    container.scrollLeft = this._stack[0].scrollLeft;
+                    container.scrollTop = this._stack[0].scrollTop;
+                }else {
+                    const left = (container.scrollLeft + x - graphRect.left) - (graphRect.width / 2);
+                    const top = (container.scrollTop + y - graphRect.top) - (graphRect.height / 2);
+                    container.scrollTo({ left, top, behavior: 'auto' });
+                }
             } else {
                 const canvasRect = canvas.getBoundingClientRect();
                 const graphRect = container.getBoundingClientRect();
