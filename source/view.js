@@ -3686,6 +3686,14 @@ view.FindSidebar = class extends view.Control {
             connection: { hide: 'Hide Connections', show: 'Show Connections' },
             weight: { hide: 'Hide Weights', show: 'Show Weights' }
         };
+        this._lis = [];
+        for (const icon of ['weight', 'connection', 'node']) {
+            const element = this.createElement('li');
+            element.innerHTML = `<svg class='sidebar-find-content-icon'><use href="#sidebar-icon-${icon}"></use></svg>`;
+            const text = this.createElement('span');
+            element.appendChild(text);
+            this._lis[icon] = element;
+        }
     }
 
     on(event, callback) {
@@ -3840,13 +3848,10 @@ view.FindSidebar = class extends view.Control {
     }
 
     _add(value, content, icon) {
-        const element = this.createElement('li');
-        element.innerHTML = `<svg class='sidebar-find-content-icon'><use href="#sidebar-icon-${icon}"></use></svg>`;
-        const text = this.createElement('span');
-        text.innerText = content;
-        element.appendChild(text);
+        const element = this._lis[icon].cloneNode(true);
+        element.lastChild.innerText = content;
         this._table.set(element, value);
-        this._content.appendChild(element);
+        this._df.appendChild(element);
     }
 
     _focus(element) {
@@ -3866,6 +3871,7 @@ view.FindSidebar = class extends view.Control {
     _update() {
         this._content.innerHTML = '';
         try {
+            this._df = this._host.document.createDocumentFragment();
             this._clear();
             const inputs = this._signature ? this._signature.inputs : this._graph.inputs;
             if (this._state.connection) {
@@ -3888,6 +3894,7 @@ view.FindSidebar = class extends view.Control {
                     }
                 }
             }
+            this._content.appendChild(this._df);
         } catch (error) {
             this.error(error, false);
         }
