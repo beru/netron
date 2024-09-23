@@ -3917,13 +3917,14 @@ view.FindSidebar = class extends view.Control {
     _add(value, content, type) {
         if (!this._toggles[type].template) {
             const element = this.createElement('li');
-            element.innerHTML = `<svg class='sidebar-find-content-icon'><use href="#sidebar-icon-${type}"></use></svg>`;
-            const text = this.createElement('span');
-            element.appendChild(text);
+            element.style.lineHeight = "20px";
+            element.innerHTML = "<svg xmlns='http://www.w3.org/2000/svg' class='sidebar-find-content-icon' viewBox='0 0 20 20'></svg>";
+            element.firstChild.innerHTML = this._host.document.getElementById(`sidebar-icon-${type}`).innerHTML;
+            element.appendChild(this._host.document.createTextNode(''));
             this._toggles[type].template = element;
         }
         const element = this._toggles[type].template.cloneNode(true);
-        element.childNodes[1].innerText = content;
+        element.childNodes[1].nodeValue = content;
         this._table.set(element, value);
         this._content.appendChild(element);
     }
